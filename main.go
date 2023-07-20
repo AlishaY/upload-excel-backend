@@ -7,6 +7,7 @@ import (
 	// "upload-excel-backend/model"
 
 	"github.com/gin-gonic/gin"
+	// "github.com/gin-contrib/cors"
 )
 
 func main() {
@@ -15,16 +16,15 @@ func main() {
 
 	// Create the Gin router
 	router := gin.Default()
+	// router.Use(cors.Default())
 
 	// Initialize the controller with the database connection
 	kpiController := controller.NewKPIController(database.DB)
 
 	// Define the API routes
-	api := router.Group("/api")
-	{
-		api.GET("/kpis", kpiController.GetKPIs)
-		api.POST("/kpis", kpiController.CreateKPI)
-	}
+		// router.GET("/kpis", kpiController.GetKPIs)
+		// router.POST("/kpis", kpiController.CreateKPI)
+		router.POST("/postfile", kpiController.PostFile)
 
 	// Start the server
 	log.Fatal(router.Run(":8080"))

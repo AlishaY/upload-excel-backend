@@ -9,7 +9,7 @@ import (
 var DB *gorm.DB
 
 func ConnectDB() {
-	dsn := "sqlserver://coadmin:alisha@1234@127.0.0.1:1433?database=CoKPI&connection+timeout=30"
+	dsn := "sqlserver://coadmin:alisha@1234@127.0.0.1:1433?database=TODO&connection+timeout=30"
 
 	var err error
 	DB, err = gorm.Open(sqlserver.Open(dsn), &gorm.Config{})
