@@ -17,11 +17,11 @@ func ConnectDB() {
 		log.Fatal(err)
 	}
 
-	sqlDB, err := DB.DB()
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer sqlDB.Close()
+	// sqlDB, err := DB.DB()
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	// defer sqlDB.Close()
 
 	// Perform any additional configuration or setup for the database connection if needed
 }

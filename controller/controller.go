@@ -11,7 +11,7 @@ import (
 	// "os"
 	"log"
 	"strings"
-	// "strconv"
+	"strconv"
 	// "encoding/json"
 
 	"github.com/360EntSecGroup-Skylar/excelize"
@@ -29,15 +29,10 @@ func NewKPIController(db *gorm.DB) *KPIController {
 	}
 }
 // Create a struct to represent the JSON format
-type OrgJSON struct {
-	Number     int    `json:"number"`
-	KRA        string `json:"KRA"`
-	Individual string `json:"individual"`
-}
-
-type Data struct {
-	Number      	string `json:"number"`
-	ObjectiveType      string `json:"objType"`
+type KpiFileJson struct {
+	NameId             string `json:"nameId"`
+	Period             string `json:"period"`
+	ObjectiveId      	int `json:"objId"`
 	KRA                string `json:"kra"`
 	Description        string `json:"desc"`
 	IndividualCriteria int    `json:"individualCriteria"`
@@ -161,6 +156,7 @@ func (c *KPIController) PostFile(ctx *gin.Context) {
 	var dataBehavior []string
 	var dataOrg []string
 	var dataIndividual []string
+	var dataAll []string
 
 	// If Header is correct, then read the rest of the data
 	if headerComplete {
@@ -210,9 +206,10 @@ func (c *KPIController) PostFile(ctx *gin.Context) {
 					rowDataString := strings.Join(rowData, ", ")
 
 					if rowDataString != "" {
-						fmt.Printf("Extracted Data for Row %d (dataTask): ----- [ %s ] -----\n", rowIndex+1, rowDataString)
+						// fmt.Printf("Extracted Data for Row %d (dataTask): ----- [ %s ] -----\n", rowIndex+1, rowDataString)
 						// Store the rowDataString in the dataTask array
 						dataTask = append(dataTask, rowDataString)
+						dataAll = append(dataAll, rowDataString)
 					}
 				} else if readB && !readC {
 					// Create an array to store the extracted data for the current row
@@ -244,9 +241,10 @@ func (c *KPIController) PostFile(ctx *gin.Context) {
 					rowDataString := strings.Join(rowData, ", ")
 
 					if rowDataString != "" {
-						fmt.Printf("Extracted Data for Row %d (dataBehavior): ----- [ %s ] -----\n", rowIndex+1, rowDataString)
+						// fmt.Printf("Extracted Data for Row %d (dataBehavior): ----- [ %s ] -----\n", rowIndex+1, rowDataString)
 						// Store the rowDataString in the dataBehavior array
 						dataBehavior = append(dataBehavior, rowDataString)
+						dataAll = append(dataAll, rowDataString)
 					}
 				} else if readC && !readD {
 					// Create an array to store the extracted data for the current row
@@ -278,9 +276,10 @@ func (c *KPIController) PostFile(ctx *gin.Context) {
 					rowDataString := strings.Join(rowData, ", ")
 
 					if rowDataString != "" {
-						fmt.Printf("Extracted Data for Row %d (dataOrg): ----- [ %s ] -----\n", rowIndex+1, rowDataString)
+						// fmt.Printf("Extracted Data for Row %d (dataOrg): ----- [ %s ] -----\n", rowIndex+1, rowDataString)
 						// Store the rowDataString in the dataOrg array
 						dataOrg = append(dataOrg, rowDataString)
+						dataAll = append(dataAll, rowDataString)
 					}
 				} else if readD {
 					// Create an array to store the extracted data for the current row
@@ -304,31 +303,121 @@ func (c *KPIController) PostFile(ctx *gin.Context) {
 					rowDataString := strings.Join(rowData, ", ")
 
 					if rowDataString != "" {
-						fmt.Printf("Extracted Data for Row %d (dataIndividual): ----- [ %s ] -----\n", rowIndex+1, rowDataString)
+						// fmt.Printf("Extracted Data for Row %d (dataIndividual): ----- [ %s ] -----\n", rowIndex+1, rowDataString)
 						// Store the rowDataString in the dataIndividual array
 						dataIndividual = append(dataIndividual, rowDataString)
+						dataAll = append(dataAll, rowDataString)
 					}
 				}
 			}
 		}
 	} else {
-		ctx.JSON(400, gin.H{"message": "Upload fail. Make sure header of the file is in correct format."})
 		log.Println("Header of the file is NOT COMPLETE.")
-		return
 	}
 	// dataTaskString := strings.Join(dataTask, "|")
 
-	// Print the extracted data from dataTask and dataBehavior arrays
-	fmt.Println("Data from dataTask array**********:\n", dataTask)
-	fmt.Println("Data from dataBehavior array:\n", dataBehavior)
-	fmt.Println("Data from dataOrg array:\n", dataOrg)
-	fmt.Println("Data from dataIndividual array:\n", dataIndividual)
+	// Create an array to store the parsed JSON data
+	var kpiDataJSON []KpiFileJson
 
-	ctx.JSON(200, gin.H{"message": "File uploaded and processed successfully"})
-	// Send the JSON response back to the client (Postman)
-	// ctx.JSON(200, orgDataJSON)
+	// Parse the dataOrg array into instances of the KpiFileJson struct
+for _, kpiRow := range dataAll {
+    // Trim the square brackets from the string
+    kpiRow = strings.TrimSuffix(strings.TrimPrefix(kpiRow, "["), "]")
+
+    // Split the string by commas
+    kpiValues := strings.Split(kpiRow, ", ")
+
+	// Convert the number value to an integer
+		numberValue, err := strconv.Atoi(kpiValues[0])
+		if err != nil {
+			log.Println("Error converting number value:", err)
+			continue
+		}
+
+    // Check if kpiValues has at least 9 elements (0 to 8 indexes)
+    if len(kpiValues) >= 9 {
+        // Create an instance of the KpiFileJson struct
+        data := KpiFileJson{
+            NameId:             "MYnAME",
+            Period:             kpiValues[0],
+            ObjectiveId:      	1,
+            KRA:                kpiValues[1],
+            Description:        kpiValues[2],
+            IndividualCriteria: numberValue,
+            Mark1Desc:          kpiValues[5],
+            Mark2Desc:          kpiValues[6],
+            Mark3Desc:          kpiValues[7],
+            Mark4Desc:          kpiValues[8],
+        }
+
+        // Save the data to the database using the SaveToDatabase function
+        if err := c.SaveToDatabase(data); err != nil {
+            log.Printf("Error saving data to database: %v", err)
+            // Handle the error (e.g., return an error response or take appropriate action)
+            // ...
+        }
+    } else {
+        // Log the data that caused the issue for debugging
+        log.Printf("kpiValues does not have enough elements: %+v", kpiValues)
+    }
 }
 
+	
+	// Convert kpiDataJSON to JSON
+	// jsonData, err := json.Marshal(kpiDataJSON)
+	// if err != nil {
+	// 	log.Println("Error marshaling JSON:", err)
+	// 	return
+	// }
+
+	// Print the JSON data
+	// fmt.Println(string(jsonData))
+	// Print the extracted data from dataTask and dataBehavior arrays
+	// fmt.Println("Data from dataTask array**********:\n", dataTask)
+	// fmt.Println("Data from dataBehavior array:\n", dataBehavior)
+	// fmt.Println("Data from dataOrg array:\n", dataOrg)
+	// fmt.Println("Data from dataIndividual array:\n", dataIndividual)
+	fmt.Println("++++++Data from ALL DATA array:\n\n\n", dataAll)
+
+	// ctx.JSON(200, gin.H{"message": "File uploaded and processed successfully"})
+	// Send the JSON response back to the client (Postman)
+	ctx.JSON(200, kpiDataJSON)
+}
+
+// SaveToDatabase inserts the data into the "Criteria" table using Exec.
+func (c *KPIController) SaveToDatabase(data KpiFileJson) error {
+    // Ensure the database connection is open
+    if c.db.Error != nil {
+        log.Printf("Error connecting to the database: %v", c.db.Error)
+        return c.db.Error
+    }
+
+    // Define the SQL query for the insert operation
+    query := `
+        INSERT INTO [dbo].[Criteria] (CreatedByUserName, Period, ObjectiveId, KRA, Description, IndividualCriteria, Mark1Desc, Mark2Desc, Mark3Desc, Mark4Desc)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `
+
+    // Execute the SQL query with the data provided in the OrgJSON struct
+    if err := c.db.Exec(query,
+        data.NameId,
+        data.Period,
+        data.ObjectiveId,
+        data.KRA,
+        data.Description,
+        data.IndividualCriteria,
+        data.Mark1Desc,
+        data.Mark2Desc,
+        data.Mark3Desc,
+        data.Mark4Desc,
+    ).Error; err != nil {
+        // Handle the error
+        log.Printf("Error inserting data into the database: %v", err)
+        return err
+    }
+
+    return nil
+}
 
 func (c *KPIController) GetKPIs(ctx *gin.Context) {
 	var kpis []model.KPI
