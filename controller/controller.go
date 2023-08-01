@@ -96,7 +96,7 @@ func (c *KPIController) PostFile(ctx *gin.Context) {
 		if rowIndex >= 0 && rowIndex <= 2 {
 			for colIndex, cell := range row {
 				// Check if the column is within the desired range (A to I)
-				if colIndex >= 0 && colIndex <= 8 {
+				if colIndex >= 0 && colIndex <= 9 {
 					data = append(data, cell)
 				}
 				if colIndex == 2 && (rowIndex == 0 || rowIndex == 1) {
@@ -156,11 +156,11 @@ func (c *KPIController) PostFile(ctx *gin.Context) {
 	}
 
 	// Create arrays to store the extracted data
-	var dataTask []string
-	var dataBehavior []string
-	var dataOrg []string
-	var dataIndividual []string
-	var dataAll []string
+	var dataTask [][]string
+	var dataBehavior [][]string
+	var dataOrg [][]string
+	var dataIndividual [][]string
+	var dataAll [][]string
 
 	// If Header is correct, then read the rest of the data
 	if headerComplete {
@@ -173,15 +173,15 @@ func (c *KPIController) PostFile(ctx *gin.Context) {
 		var readD bool
 
 		// Iterate through the rows and store the values in the array
-for rowIndex, row := range rows {
-    if rowIndex >= 2 {
-        if len(row) > 0 && row[0] == "A" {
-            // Skip reading the current row if a cell in column A is equal to "A"
-            readA = true
-            continue
-        }
+		for rowIndex, row := range rows {
+    	if rowIndex >= 2 {
+        	if len(row) > 0 && row[0] == "A" {
+            	// Skip reading the current row if a cell in column A is equal to "A"
+            	readA = true
+            	continue
+        	}
 
-        if readA && !readB {
+        	if readA && !readB {
             // Create an array to store the extracted data for the current row
             var rowData []string
 
@@ -204,8 +204,6 @@ for rowIndex, row := range rows {
 
                     // Store the cell value in the dataTask array
                     rowData = append(rowData, cell)
-					theObj := "Task"
-					rowData = append(rowData, theObj)
 
                 }
             }
@@ -215,9 +213,18 @@ for rowIndex, row := range rows {
 
             if rowDataString != "" {
                 // fmt.Printf("Extracted Data for Row %d (dataTask): ----- [ %s ] -----\n", rowIndex+1, rowDataString)
+				// fmt.Println("LENGTH OF THE ROW: -------------", rowDataString[9])
+
                 // Store the rowDataString in the dataTask array
-                dataTask = append(dataTask, rowDataString)
-                dataAll = append(dataAll, rowDataString)
+                // dataTask = append(dataTask, rowDataString, "Task")
+				// Append "Task" at the end of the rowData
+				rowData = append(rowData, "Task")
+
+				// Store the rowData in the dataTask array
+				dataTask = append(dataTask, rowData)
+				// Print the modified dataTask
+				fmt.Printf("Extracted Data for Row %d (dataTask): ----- [ %s ] -----\n", rowIndex+1, dataTask)
+				dataAll = append(dataAll, dataTask...)
             }
         } else if readB && !readC {
             // Create an array to store the extracted data for the current row
@@ -242,8 +249,6 @@ for rowIndex, row := range rows {
 
                     // Store the cell value in the dataBehavior array
                     rowData = append(rowData, cell)
-					theObj := "Behavior/Attitude"
-					rowData = append(rowData, theObj)
                 }
             }
 
@@ -253,8 +258,13 @@ for rowIndex, row := range rows {
             if rowDataString != "" {
                 // fmt.Printf("Extracted Data for Row %d (dataBehavior): ----- [ %s ] -----\n", rowIndex+1, rowDataString)
                 // Store the rowDataString in the dataBehavior array
-                dataBehavior = append(dataBehavior, rowDataString)
-                dataAll = append(dataAll, rowDataString)
+                rowData = append(rowData, "Behavior/Attitude")
+
+				// Store the rowData in the dataBehavior array
+				dataBehavior = append(dataBehavior, rowData)
+				// Print the modified dataBehavior
+				fmt.Printf("Extracted Data for Row %d (dataBehavior): ----- [ %s ] -----\n", rowIndex+1, dataBehavior)
+				dataAll = append(dataAll, dataBehavior...)
             }
         } else if readC && !readD {
             // Create an array to store the extracted data for the current row
@@ -279,8 +289,6 @@ for rowIndex, row := range rows {
 
                     // Store the cell value in the dataOrg array
                     rowData = append(rowData, cell)
-					theObj := "Organizational Goal"
-					rowData = append(rowData, theObj)
                 }
             }
 
@@ -288,10 +296,13 @@ for rowIndex, row := range rows {
             rowDataString := strings.Join(rowData, ", ")
 
             if rowDataString != "" {
-                // fmt.Printf("Extracted Data for Row %d (dataOrg): ----- [ %s ] -----\n", rowIndex+1, rowDataString)
-                // Store the rowDataString in the dataOrg array
-                dataOrg = append(dataOrg, rowDataString)
-                dataAll = append(dataAll, rowDataString)
+                rowData = append(rowData, "Organizational Goal")
+
+				// Store the rowData in the dataOrg array
+				dataOrg = append(dataOrg, rowData)
+				// Print the modified dataOrg
+				fmt.Printf("Extracted Data for Row %d (dataOrg): ----- [ %s ] -----\n", rowIndex+1, dataOrg)
+				dataAll = append(dataAll, dataOrg...)
             }
         } else if readD {
             // Create an array to store the extracted data for the current row
@@ -308,8 +319,6 @@ for rowIndex, row := range rows {
 
                     // Store the cell value in the dataIndividual array
                     rowData = append(rowData, cell)
-					theObj := "Individual Development Goal"
-					rowData = append(rowData, theObj)
                 }
             }
 
@@ -319,34 +328,33 @@ for rowIndex, row := range rows {
             if rowDataString != "" {
                 // fmt.Printf("Extracted Data for Row %d (dataIndividual): ----- [ %s ] -----\n", rowIndex+1, rowDataString)
                 // Store the rowDataString in the dataIndividual array
-                dataIndividual = append(dataIndividual, rowDataString)
-                dataAll = append(dataAll, rowDataString)
+                rowData = append(rowData, "Organizational Goal")
+
+				// Store the rowData in the dataIndividual array
+				dataIndividual = append(dataIndividual, rowData)
+				// Print the modified dataIndividual
+				fmt.Printf("Extracted Data for Row %d (dataIndividual): ----- [ %s ] -----\n", rowIndex+1, dataIndividual)
+				dataAll = append(dataAll, dataIndividual...)
             }
         }
     }
-}
+	}
 	} else {
 		log.Println("Header of the file is NOT COMPLETE.")
 	}
 	// dataTaskString := strings.Join(dataTask, "|")
 
-	fmt.Println("@@@@@@@@@@@@@@@@@@@@@@@THIS THE SET OBJECTIVE", dataAll)
+	// fmt.Println("@@@@@@@@@@@@@@@@@@@@@@@THIS THE SET OBJECTIVE", dataAll)
 	// Create an array to store the parsed JSON data
 	var kpiDataJSON []KpiFileJson
 
-	// Determine the ObjectiveType based on the final flags' values
-// objectiveType := getObjectiveType(taskType, behaviorType, organizationalType, individualType)
-
 	// Parse the dataOrg array into instances of the KpiFileJson struct
-for _, kpiRow := range dataAll {
+for _, kpiValues := range dataAll {
     // Trim the square brackets from the string
-    kpiRow = strings.TrimSuffix(strings.TrimPrefix(kpiRow, "["), "]")
+    // kpiRow = strings.TrimSuffix(strings.TrimPrefix(kpiRow, "["), "]")
 
-    // Split the string by commas
-    kpiValues := strings.Split(kpiRow, ", ")
-
-	
-
+    // // Split the string by commas
+    // kpiValues := strings.Split(kpiRow, ", ")
 		removePercent := strings.Replace(kpiValues[3], "%", "", 1)
 		// Convert the number value to an integer
 		numberValue, err := strconv.Atoi(removePercent)
@@ -367,7 +375,7 @@ for _, kpiRow := range dataAll {
         //     return
         // }
     	// Check if kpiValues has at least 9 elements (0 to 8 indexes)
-    	if len(kpiValues) >= 9 {
+    	if len(kpiValues) >= 10 {
         // Create an instance of the KpiFileJson struct
         	data := KpiFileJson{
 				NameId:             loginName,
@@ -387,7 +395,8 @@ for _, kpiRow := range dataAll {
             log.Printf("Error saving data to database: %v", err)
             // Handle the error (e.g., return an error response or take appropriate action)
             // ...
-			ctx.JSON(500, gin.H{"message": "Inserting KPI data failed."})
+			// ctx.JSON(500, gin.H{"message": "Inserting KPI data failed."})
+			// fmt.Println("ERROR INSERTING DATA TO DATABASE")
 			// return
         }
     } else {
@@ -396,7 +405,6 @@ for _, kpiRow := range dataAll {
     }
 }
 
-	
 	// Convert kpiDataJSON to JSON
 	// jsonData, err := json.Marshal(kpiDataJSON)
 	// if err != nil {
@@ -406,11 +414,6 @@ for _, kpiRow := range dataAll {
 
 	// Print the JSON data
 	// fmt.Println(string(jsonData))
-	// Print the extracted data from dataTask and dataBehavior arrays
-	// fmt.Println("Data from dataTask array**********:\n", dataTask)
-	// fmt.Println("Data from dataBehavior array:\n", dataBehavior)
-	// fmt.Println("Data from dataOrg array:\n", dataOrg)
-	// fmt.Println("Data from dataIndividual array:\n", dataIndividual)
 	fmt.Println("++++++Data from ALL DATA array:\n\n\n", dataAll)
 
 	// ctx.JSON(200, gin.H{"message": "File uploaded and processed successfully"})
@@ -445,21 +448,6 @@ func (c *KPIController) SaveToDatabase(data KpiFileJson) error {
     }
 
     return nil
-}
-
-// getObjectveType determines the ObjectiveType based on the presence of data in each section
-func getObjectiveType(taskType, behaviorType, organizationalType, individualType bool) string {
-    if taskType {
-        return "read"
-    } else if behaviorType {
-        return "Behavior/Attitude"
-    } else if organizationalType {
-        return "Organizational Goal"
-    } else if individualType {
-        return "Individual Development Goal"
-    } else {
-		return "Not recognize objective"
-	}
 }
 
 func isEmptyRow(row []string) bool {
