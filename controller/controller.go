@@ -199,7 +199,7 @@ func (c *KPIController) PostFile(ctx *gin.Context) {
 					if rowDataString != "" {
 						rowData = append(rowData, "Task")
 						dataTask = append(dataTask, rowData)
-						fmt.Printf("Extracted Data for Row %d (dataTask): ----- [ %s ] -----\n", rowIndex+1, dataTask)
+						// fmt.Printf("Extracted Data for Row %d (dataTask): ----- [ %s ] -----\n", rowIndex+1, dataTask)
 					}
 				} else if readB && !readC {
 					// Create an array to store the extracted data for the current row
@@ -229,7 +229,7 @@ func (c *KPIController) PostFile(ctx *gin.Context) {
 					if rowDataString != "" {
 						rowData = append(rowData, "Behavior/Attitude")
 						dataBehavior = append(dataBehavior, rowData)
-						fmt.Printf("Extracted Data for Row %d (dataBehavior): ----- [ %s ] -----\n", rowIndex+1, dataBehavior)
+						// fmt.Printf("Extracted Data for Row %d (dataBehavior): ----- [ %s ] -----\n", rowIndex+1, dataBehavior)
 					}
 				} else if readC && !readD {
 					// Create an array to store the extracted data for the current row
@@ -259,7 +259,7 @@ func (c *KPIController) PostFile(ctx *gin.Context) {
 					if rowDataString != "" {
 						rowData = append(rowData, "Organizational Goal")
 						dataOrg = append(dataOrg, rowData)
-						fmt.Printf("Extracted Data for Row %d (dataOrg): ----- [ %s ] -----\n", rowIndex+1, dataOrg)
+						// fmt.Printf("Extracted Data for Row %d (dataOrg): ----- [ %s ] -----\n", rowIndex+1, dataOrg)
 					}
 				} else if readD {
 					// Create an array to store the extracted data for the current row
@@ -282,7 +282,7 @@ func (c *KPIController) PostFile(ctx *gin.Context) {
 					if rowDataString != "" {
 						rowData = append(rowData, "Individual Goal")
 						dataIndividual = append(dataIndividual, rowData)
-						fmt.Printf("Extracted Data for Row %d (dataIndividual): ----- [ %s ] -----\n", rowIndex+1, dataIndividual)
+						// fmt.Printf("Extracted Data for Row %d (dataIndividual): ----- [ %s ] -----\n", rowIndex+1, dataIndividual)
 					}
 				}
 			}
@@ -291,75 +291,117 @@ func (c *KPIController) PostFile(ctx *gin.Context) {
 		dataAll = append(dataAll, dataBehavior...)
 		dataAll = append(dataAll, dataOrg...)
 		dataAll = append(dataAll, dataIndividual...)
+		fmt.Println("+++++++++++++++++++++ THIS IS ALL THE DATA +++++++++++++++++++++++", dataAll)
+
+		jsonData := make([]map[string]interface{}, 0)
+		hasEnoughValues := true
+		fmt.Println("this is dataAll", len(dataAll))
+		for _, count := range dataAll {
+			fmt.Println("THIS IS THE LENGTH OF EVERY VALUE: ", len(count))
+		}
+
+
+
+
+
+		for _, kpiValues := range dataAll {
+			removePercent := strings.Replace(kpiValues[3], "%", "", 1)
+			numberValue, err := strconv.Atoi(removePercent)
+			if err != nil {
+				log.Println("Error converting number value:", err)
+				continue
+			}
+
+			loginName := ctx.PostForm("loginName")
+			period := ctx.PostForm("period")
+
+			if len(kpiValues) >= 10 {
+				// Create an instance of the KpiFileJson struct
+				data := KpiFileJson{
+					NameId:             loginName,
+					Period:             period,
+					ObjectiveType:      kpiValues[9],
+					KRA:                kpiValues[1],
+					Description:        kpiValues[2],
+					IndividualCriteria: numberValue,
+					Mark1Desc:          kpiValues[5],
+					Mark2Desc:          kpiValues[6],
+					Mark3Desc:          kpiValues[7],
+					Mark4Desc:          kpiValues[8],
+				}
+
+				// Convert data to a map of key-value pairs based on the KpiFileJson struct
+				dataMap := map[string]interface{}{
+					"nameId":             data.NameId,
+					"period":             data.Period,
+					"objType":            data.ObjectiveType,
+					"kra":                data.KRA,
+					"desc":               data.Description,
+					"individualCriteria": data.IndividualCriteria,
+					"mark1Desc":          data.Mark1Desc,
+					"mark2Desc":          data.Mark2Desc,
+					"mark3Desc":          data.Mark3Desc,
+					"mark4Desc":          data.Mark4Desc,
+				}
+				// Append the dataMap to the jsonData slice
+				jsonData = append(jsonData, dataMap)
+			} else {
+				log.Printf("kpiValues does not have enough elements: %+v", kpiValues)
+				hasEnoughValues = false
+
+				responseJSON := gin.H{
+					"error":       "File does not have enough values",
+					"kpiValues":   kpiValues,
+				}
+				ctx.JSON(http.StatusBadRequest, responseJSON)
+				return
+			}
+		}
+
+		if hasEnoughValues {
+			// Insert data into the database using the jsonData slice
+			for _, dataMap := range jsonData {
+				// Save the data to the database using the SaveToDatabase function
+				if err := c.SaveToDatabase(dataMap); err != nil {
+					fmt.Println("total dataMap: ", len(dataMap))
+					log.Printf("Error saving data to database: %v", err)
+					ctx.JSON(http.StatusInternalServerError, gin.H{
+						"message": err.Error(),
+					})
+					return
+				}
+			}
+
+			fmt.Println("++++++Data from ALL DATA array:\n\n\n", dataAll)
+			ctx.JSON(http.StatusOK, jsonData)
+    	}
 	} else {
 		log.Println("Header of the file is NOT COMPLETE.")
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Header of the file is not complete"})
 	}
 
-	jsonData := make([]map[string]interface{}, 0)
-
-	for _, kpiValues := range dataAll {
-		removePercent := strings.Replace(kpiValues[3], "%", "", 1)
-		// Convert the number value to an integer
-		numberValue, err := strconv.Atoi(removePercent)
-		if err != nil {
-			log.Println("Error converting number value:", err)
-			continue
-		}
-
-		loginName := ctx.PostForm("loginName")
-		period := ctx.PostForm("period")
-    	if len(kpiValues) >= 10 {
-        // Create an instance of the KpiFileJson struct
-        	data := KpiFileJson{
-				NameId:             loginName,
-				Period:             period,
-				ObjectiveType:      kpiValues[9],
-				KRA:                kpiValues[1],
-				Description:        kpiValues[2],
-				IndividualCriteria: numberValue,
-				Mark1Desc:          kpiValues[5],
-				Mark2Desc:          kpiValues[6],
-				Mark3Desc:          kpiValues[7],
-				Mark4Desc:          kpiValues[8],
-        	}
-
-			// Convert data to a map of key-value pairs based on the KpiFileJson struct
-            dataMap := map[string]interface{}{
-                "nameId":             data.NameId,
-                "period":             data.Period,
-                "objType":            data.ObjectiveType,
-                "kra":                data.KRA,
-                "desc":               data.Description,
-                "individualCriteria": data.IndividualCriteria,
-                "mark1Desc":          data.Mark1Desc,
-                "mark2Desc":          data.Mark2Desc,
-                "mark3Desc":          data.Mark3Desc,
-                "mark4Desc":          data.Mark4Desc,
-            }
-
-			// Save the data to the database using the SaveToDatabase function
-			if err := c.SaveToDatabase(data); err != nil {
-				log.Printf("Error saving data to database: %v", err)
-				// return
-			}
-			// Append the dataMap to the jsonData slice
-			jsonData = append(jsonData, dataMap)
-		} else {
-			// Log the data that caused the issue for debugging
-			log.Printf("kpiValues does not have enough elements: %+v", kpiValues)
-		}
-	}
-	fmt.Println("++++++Data from ALL DATA array:\n\n\n", dataAll)
-	ctx.JSON(http.StatusOK, jsonData)
+	
 }
 
-func (c *KPIController) SaveToDatabase(data KpiFileJson) error {
+func (c *KPIController) SaveToDatabase(dataMap map[string]interface{}) error {
     // Ensure the database connection is open
     if c.db.Error != nil {
         log.Printf("Error connecting to the database: %v", c.db.Error)
         return c.db.Error
     }
 
+	data := KpiFileJson{
+        NameId:             dataMap["nameId"].(string),
+        Period:             dataMap["period"].(string),
+        ObjectiveType:      dataMap["objType"].(string),
+        KRA:                dataMap["kra"].(string),
+        Description:        dataMap["desc"].(string),
+        IndividualCriteria: dataMap["individualCriteria"].(int),
+        Mark1Desc:          dataMap["mark1Desc"].(string),
+        Mark2Desc:          dataMap["mark2Desc"].(string),
+        Mark3Desc:          dataMap["mark3Desc"].(string),
+        Mark4Desc:          dataMap["mark4Desc"].(string),
+    }
     // Call the stored procedure using GORM's Raw method
     result := c.db.Exec("EXEC usp_CreateKpi ?, ?, ?, ?, ?, ?, ?, ?, ?, ?", 
         data.NameId, data.Period, data.ObjectiveType, data.KRA, data.Description, 
@@ -367,7 +409,7 @@ func (c *KPIController) SaveToDatabase(data KpiFileJson) error {
 
     if result.Error != nil {
         // Handle the error
-        log.Printf("Error calling stored procedure: %v", result.Error)
+        // log.Printf("Error calling stored procedure: %v", result.Error)
         return result.Error
     }
 
